@@ -35,7 +35,10 @@ jobs:
   
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install 
+        run: poetry install
+
+      - name: 'Create env file'
+        run: echo "${{ secrets.WEBSITE_ENV }}" > .env 
       
       - name: Run tests
         run: make lint
