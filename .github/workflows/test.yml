@@ -42,7 +42,6 @@ jobs:
       
       - name: Run tests
         run: make lint
-        env
 
       - name: Run linters
         run: make test
