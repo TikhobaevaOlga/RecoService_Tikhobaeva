@@ -35,10 +35,13 @@ jobs:
   
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install 
+        run: poetry install
+
+      - name: 'Create env file'
+        run: echo API_KEYS=${{ secrets.API_KEYS }} > .env 
       
-      - name: Run tests
+      - name: Run linters
         run: make lint
 
-      - name: Run linters
+      - name: Run tests
         run: make test
