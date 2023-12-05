@@ -9,7 +9,7 @@ from service.settings import ServiceConfig
 load_dotenv(find_dotenv())
 
 GET_RECO_PATH = "/reco/{model_name}/{user_id}"
-MODEL_NAMES = ["top", "random"]
+MODEL_NAMES = ["popular", "user_knn"]
 TOKEN = os.environ.get("API_KEYS")[0]
 
 
