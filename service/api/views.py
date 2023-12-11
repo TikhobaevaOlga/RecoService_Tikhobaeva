@@ -1,5 +1,4 @@
 import os
-import random
 from typing import Dict, List
 
 from dotenv import find_dotenv, load_dotenv
@@ -9,8 +8,24 @@ from pydantic import BaseModel
 
 from service.api.exceptions import AuthorizationError, ModelNotFoundError, UserNotFoundError
 from service.log import app_logger
+from service.recommenders.model_loader import load_ready_recos
+from service.recommenders.most_popular import MostPopular
+from service.recommenders.userknn import UserKnn
 
 load_dotenv(find_dotenv())
+
+AVAILABLE_MODELS = [
+    "popular",
+    "user_knn",
+]
+
+RECOS_PATH = "service/recommendations"
+
+userknn_model = UserKnn()
+popular_model = MostPopular()
+
+userknn_recos = load_ready_recos(f"{RECOS_PATH}/user_knn_recos.json")
+popular_recos = load_ready_recos(f"{RECOS_PATH}/popular_recos.json")
 
 token_header = APIKeyHeader(name="Authorization")
 
@@ -67,15 +82,23 @@ async def get_reco(request: Request, model_name: str, user_id: int, token: str =
     app_logger.info(f"Request for model: {model_name}, user_id: {user_id}")
     k_recs = request.app.state.k_recs
 
+    if model_name not in AVAILABLE_MODELS:
+        raise ModelNotFoundError(error_message=f"Model {model_name} not registered")
+
     if user_id > 10**9:
         raise UserNotFoundError(error_message=f"User {user_id} not found")
 
-    if model_name == "top":
-        reco = list(range(k_recs))
-    elif model_name == "random":
-        reco = random.sample(range(1, 1000), k_recs)
-    else:
-        raise ModelNotFoundError(error_message=f"Model {model_name} not registered")
+    if model_name == "user_knn":
+        reco = userknn_model.offline_recommend(userknn_recos, user_id)
+    elif model_name == "popular":
+        reco = popular_model.offline_recommend(popular_recos)
+
+    if not reco:
+        reco = popular_model.offline_recommend(popular_recos)
+
+    if len(reco) < k_recs:
+        popular_recs = [rec for rec in popular_model.offline_recommend(popular_recos) if rec not in reco]
+        reco += popular_recs[: (k_recs - len(reco))]
 
     return RecoResponse(user_id=user_id, items=reco)
 
