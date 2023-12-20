@@ -11,11 +11,12 @@ from service.log import app_logger
 from service.recommenders.lightfm import offline_fm_recommend, online_ann_recommend
 from service.recommenders.model_loader import load_ready_recos
 from service.recommenders.most_popular import MostPopular
+from service.recommenders.neural_networks import offline_neural_recommend
 from service.recommenders.userknn import UserKnn
 
 load_dotenv(find_dotenv())
 
-AVAILABLE_MODELS = ["popular", "user_knn", "lightfm_warp_64", "lightfm_ann"]
+AVAILABLE_MODELS = ["popular", "user_knn", "lightfm_warp_64", "lightfm_ann", "dssm", "autoencoder", "rec_vae"]
 
 RECOS_PATH = "service/recommendations"
 
@@ -94,6 +95,8 @@ async def get_reco(request: Request, model_name: str, user_id: int, token: str =
         reco = offline_fm_recommend(user_id)
     elif model_name == "lightfm_ann":
         reco = online_ann_recommend(user_id)
+    elif model_name in ["dssm", "autoencoder", "rec_vae"]:
+        reco = offline_neural_recommend(model_name, user_id)
 
     if not reco:
         reco = popular_model.offline_recommend(popular_recos)
